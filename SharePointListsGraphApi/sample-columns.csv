@@ -1,0 +1,23 @@
+Column Name	Type
+AgencyAddress	Single line of text
+AgencyAddressUSorForeign	Choice
+AgencyCity	Single line of text
+AgencyComplaintNumber	Single line of text
+AgencyContactName	Single line of text
+AgencyDueDate	Date and Time
+AgencyFaxNumber	Single line of text
+AgencyPhoneNumber	Single line of text
+AgencyStateProvince	Single line of text
+AgencyUnderReview	Choice
+AgencyZipcode	Single line of text
+AmountOfResponseCallsToCustomer	Number
+AmountOfResponseEmailsToCustomer	Number
+AmountOfResponseLettersToCustomer	Number
+AssignComplaintTo	Person or Group
+AttachmentMoved	Choice
+AttachmentURLs	Multiple lines of text
+AvoidableComplaint	Choice
+BankFees	Number
+ClosedByFullName	Single line of text
+ClosedDate	Date and Time
+ComplainantRole	Choice

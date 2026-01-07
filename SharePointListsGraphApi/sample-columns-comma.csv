@@ -1,0 +1,11 @@
+Column Name,Column Type
+FirstName,Text
+LastName,Text
+Email,Text
+PhoneNumber,Text
+BirthDate,Date
+Salary,Number
+Department,Choice
+IsActive,Yes/No
+Notes,Multiple lines of text
+Website,Hyperlink

@@ -8,5 +8,6 @@ namespace SharePointListsGraphApi
         public string SiteUrl { get; set; } = string.Empty;
         public string ListName { get; set; } = string.Empty;
         public string Columns { get; set; } = "*";
+        public bool EnableDebugLogging { get; set; } = false;
     }
 }

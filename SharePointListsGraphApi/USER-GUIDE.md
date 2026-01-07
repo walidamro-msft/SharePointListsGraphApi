@@ -6,8 +6,9 @@ This tool provides four main features for managing SharePoint Online lists:
 
 1. **Add Columns from CSV** - Bulk import column definitions
 2. **Generate Test Data** - Create random test data for testing
-3. **Export to JSON** - Download list contents
-4. **Grant Site Permissions** - Helper to set up site-level permissions
+3. **Export to JSON** - Download list contents with optional date filtering
+4. **Display Access Token** - View and inspect authentication tokens (debugging)
+5. **Exit** - Close the application
 
 ## Getting Started
 
@@ -30,7 +31,7 @@ When you first run the application, it will:
   1. Add Columns from CSV File
   2. Generate Random Test Data
   3. Export List to JSON File
-  4. Grant Site Permissions (Setup Helper)
+  4. Display Access Token
   5. Exit
 
 Select an option (1-5):
@@ -314,7 +315,185 @@ Configure in `appsettings.json`:
 
 ---
 
-## Feature 4: Grant Site Permissions (Setup Helper)
+## Feature 4: Display Access Token (Debug & Diagnostics)
+
+### Purpose
+View and inspect the OAuth 2.0 access token used to authenticate with Microsoft Graph API. This is a debugging and diagnostic feature.
+
+### When to Use
+- **Troubleshooting authentication issues** - Verify the token is being generated
+- **Security auditing** - Inspect token claims and permissions
+- **Learning OAuth 2.0** - Understand how Azure AD issues tokens
+- **Testing with external tools** - Use token with Graph Explorer, PowerShell, or curl
+- **Token expiration monitoring** - Check when the token will expire
+
+### How to Use
+
+1. **Select the Feature**
+   - Choose option **4** from the main menu
+
+2. **View Token Information**
+   ```
+   ============================================================
+     Access Token Information
+   ============================================================
+   
+   Access Token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ij...
+   
+   Expires On: 2024-12-15 14:30:45 UTC
+   Time Until Expiration: 00:59:12
+   
+   ? Access token retrieved successfully!
+   ```
+
+### Token Information Displayed
+
+| Field | Description |
+|-------|-------------|
+| **Access Token** | The complete JWT (JSON Web Token) string |
+| **Expires On** | When the token will expire (UTC timezone) |
+| **Time Until Expiration** | Countdown in HH:MM:SS format |
+
+### Inspecting the Token
+
+You can decode and analyze the token using online tools:
+
+**Steps:**
+1. Copy the token from the console output
+2. Visit [jwt.ms](https://jwt.ms) or [jwt.io](https://jwt.io)
+3. Paste the token
+
+**You'll see:**
+- **Header** - Token type and signing algorithm
+- **Payload (Claims)**:
+  - `aud` - Audience (https://graph.microsoft.com)
+  - `iss` - Issuer (Microsoft identity platform)
+  - `appid` - Your application (client) ID
+  - `tid` - Your tenant ID
+  - `roles` - Permissions granted (Sites.Read.All, Sites.ReadWrite.All, etc.)
+  - `iat` - Issued at timestamp
+  - `exp` - Expiration timestamp
+- **Signature** - Cryptographic signature
+
+### Using the Token with Other Tools
+
+#### Graph Explorer
+1. Go to [Graph Explorer](https://developer.microsoft.com/graph/graph-explorer)
+2. Click "Modify permissions" ? "Access token"
+3. Paste your token
+4. Run queries to test your permissions
+
+#### PowerShell
+```powershell
+$token = "eyJ0eXAiOiJKV1QiLCJhbGci..."
+$headers = @{
+    "Authorization" = "Bearer $token"
+    "Content-Type" = "application/json"
+}
+
+Invoke-RestMethod -Uri "https://graph.microsoft.com/v1.0/sites" -Headers $headers
+```
+
+#### cURL (Command Line)
+```bash
+curl -X GET "https://graph.microsoft.com/v1.0/sites" \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGci..."
+```
+
+### Security Considerations
+
+?? **Important Security Notes:**
+
+1. **Never share access tokens** - They provide full access to your SharePoint data
+2. **Tokens expire** - Default lifetime is 60-90 minutes
+3. **Token rotation** - The SDK automatically refreshes tokens when needed
+4. **Scope validation** - Ensure the token contains the expected permissions (check `roles` claim)
+5. **Secure storage** - Don't save tokens to files or source control
+
+### Tips
+- Use this feature when debugging "Access Denied" errors
+- Verify the `roles` claim contains `Sites.Read.All` and `Sites.ReadWrite.All`
+- Check the `exp` (expiration) claim if you encounter token expiration issues
+- The token is generated fresh each time you run the feature
+- For security auditing, compare expected vs. actual permissions in the token
+
+---
+
+## Debug Features
+
+### Enable Debug Logging
+
+To see the actual Graph API URLs being sent by the application, enable debug logging in `appsettings.json`:
+
+```json
+{
+  "SharePointSettings": {
+    "TenantId": "your-tenant-id",
+    "ClientId": "your-client-id",
+    "ClientSecret": "your-secret",
+    "SiteUrl": "https://yourtenant.sharepoint.com/sites/yoursite",
+    "ListName": "Your List Name",
+    "Columns": "*",
+    "EnableDebugLogging": true
+  }
+}
+```
+
+**Default Value:** `false` (logging disabled)
+
+### What Gets Logged
+
+When `EnableDebugLogging: true`, you'll see:
+
+```
+[DEBUG MODE ENABLED] - HTTP requests will be logged
+
+[DEBUG] HTTP GET: https://graph.microsoft.com/v1.0/sites/contoso.sharepoint.com.../lists/abc123.../items?$expand=fields
+[DEBUG] Response: 200 OK
+
+[DEBUG] First Graph API Request URL:
+https://graph.microsoft.com/v1.0/sites/.../items?$expand=fields&$filter=fields%2FModified%20ge%20'2024-01-15T00:00:00Z'
+
+[DEBUG] Next page URL: https://graph.microsoft.com/v1.0/sites/.../items?$skiptoken=Paged%3DTRUE...
+[DEBUG] Response: 200 OK
+```
+
+### Use Cases for Debug Logging
+
+1. **Verify date filters** - See the exact OData filter syntax
+2. **Troubleshoot permission issues** - Identify which endpoint is failing
+3. **Understand column selection** - See how `$select` works
+4. **Monitor API performance** - Track how many requests are made
+5. **Learn Graph API** - Study how SDK translates operations into HTTP requests
+
+### Color-Coded Debug Output
+
+- ?? **Cyan** - HTTP requests and initial query URLs
+- ?? **Green** - Successful HTTP responses
+- ?? **Yellow** - Pagination/next page URLs
+
+### Disabling Debug Logging
+
+Set back to `false` in `appsettings.json`:
+```json
+"EnableDebugLogging": false
+```
+
+**Recommendation:**
+- **Development/Testing:** `true` - See all API interactions
+- **Production:** `false` - Cleaner output, better performance
+
+For complete debug feature documentation, see **[DEBUG-FEATURES.md](DEBUG-FEATURES.md)**
+
+---
+
+## Feature 5: Grant Site Permissions (Setup Helper)
+
+*Note: This feature was available in earlier versions. For current permission setup, see [SETUP.md](SETUP.md)*
+
+---
+
+## Troubleshooting
 
 ### Purpose
 Interactive helper tool to guide you through granting your app the necessary permissions to modify SharePoint lists.
@@ -614,10 +793,10 @@ Revoke-PnPAzureADAppSitePermission -PermissionId $myApp.Id
 
 | Menu Option | Purpose | Required Permission |
 |-------------|---------|-------------------|
-| 1 | Add Columns | Sites.ReadWrite.All + Site Write |
-| 2 | Generate Data | Sites.ReadWrite.All + Site Write |
+| 1 | Add Columns | Sites.ReadWrite.All |
+| 2 | Generate Data | Sites.ReadWrite.All |
 | 3 | Export Data | Sites.Read.All |
-| 4 | Grant Permissions | Site Collection Admin |
+| 4 | Display Access Token | None (uses existing auth) |
 | 5 | Exit | None |
 
 ---

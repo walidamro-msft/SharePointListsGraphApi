@@ -28,6 +28,11 @@ A comprehensive .NET 10 console application for managing SharePoint Online lists
 - Saves results as JSON with timestamp filename (YYYYMMDDHHmmss.json)
 - Handles Graph API pagination automatically
 
+### 4. Debug & Diagnostic Features
+- **Debug Logging** - View actual Graph API URLs being sent (configurable via appsettings)
+- **Access Token Display** - Inspect OAuth 2.0 tokens, expiration times, and permissions
+- Helpful for troubleshooting, learning Graph API, and security auditing
+
 ## Project Structure
 
 ```
@@ -95,7 +100,8 @@ Edit `appsettings.json` with your values:
     "ClientSecret": "YOUR-CLIENT-SECRET-VALUE",
     "SiteUrl": "https://yourtenant.sharepoint.com/sites/yoursite",
     "ListName": "Your List Name",
-    "Columns": "*"
+    "Columns": "*",
+    "EnableDebugLogging": false
   }
 }
 ```

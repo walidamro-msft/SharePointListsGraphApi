@@ -2,6 +2,7 @@
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Azure.Identity;
+using Azure.Core;
 using SharePointListsGraphApi.Services;
 using SharePointListsGraphApi.Helpers;
 
@@ -40,6 +41,9 @@ namespace SharePointListsGraphApi
                             await ExportListToJsonAsync();
                             break;
                         case 4:
+                            await DisplayAccessTokenAsync();
+                            break;
+                        case 5:
                             exit = true;
                             Console.WriteLine("\nGoodbye!");
                             break;
@@ -81,7 +85,20 @@ namespace SharePointListsGraphApi
                 _settings.ClientId,
                 _settings.ClientSecret);
 
-            _graphClient = new GraphServiceClient(clientSecretCredential);
+            // Conditionally enable debug logging based on appsettings
+            if (_settings.EnableDebugLogging)
+            {
+                var loggingHandler = new Handlers.LoggingHandler(new HttpClientHandler());
+                var httpClient = new HttpClient(loggingHandler);
+                _graphClient = new GraphServiceClient(httpClient, clientSecretCredential);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("[DEBUG MODE ENABLED] - HTTP requests will be logged\n");
+                Console.ResetColor();
+            }
+            else
+            {
+                _graphClient = new GraphServiceClient(clientSecretCredential);
+            }
 
             // Initialize services and get site/list info
             var sharePointService = new SharePointService(_graphClient);
@@ -229,7 +246,7 @@ namespace SharePointListsGraphApi
                     Console.WriteLine();
                 }
 
-                var exportService = new ListExportService(_graphClient!);
+                var exportService = new ListExportService(_graphClient!, _settings!.EnableDebugLogging);
                 
                 var allItems = await exportService.DownloadAllListItemsAsync(
                     _currentSite!.Id!, 
@@ -271,6 +288,37 @@ namespace SharePointListsGraphApi
                 }
                 
                 MenuHelper.DisplayError("Invalid date format. Please use yyyy-MM-dd HH:mm:ss format.");
+            }
+        }
+
+        static async Task DisplayAccessTokenAsync()
+        {
+            try
+            {
+                MenuHelper.DisplayHeader("Access Token Information");
+
+                var clientSecretCredential = new ClientSecretCredential(
+                    _settings!.TenantId,
+                    _settings.ClientId,
+                    _settings.ClientSecret);
+
+                var tokenRequestContext = new Azure.Core.TokenRequestContext(
+                    new[] { "https://graph.microsoft.com/.default" });
+
+                var token = await clientSecretCredential.GetTokenAsync(tokenRequestContext);
+                
+                Console.WriteLine($"Access Token: {token.Token}");
+                Console.WriteLine();
+                Console.WriteLine($"Expires On: {token.ExpiresOn:yyyy-MM-dd HH:mm:ss} UTC");
+                Console.WriteLine($"Time Until Expiration: {token.ExpiresOn - DateTimeOffset.UtcNow:hh\\:mm\\:ss}");
+                
+                Console.WriteLine();
+                MenuHelper.DisplaySuccess("Access token retrieved successfully!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine();
+                MenuHelper.DisplayError($"Error retrieving access token: {ex.Message}");
             }
         }
     }

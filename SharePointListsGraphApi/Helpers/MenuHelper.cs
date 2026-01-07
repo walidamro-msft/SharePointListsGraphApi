@@ -12,9 +12,10 @@
             Console.WriteLine("  1. Add Columns from CSV File");
             Console.WriteLine("  2. Generate Random Test Data");
             Console.WriteLine("  3. Export List to JSON File");
-            Console.WriteLine("  4. Exit");
+            Console.WriteLine("  4. Display Access Token");
+            Console.WriteLine("  5. Exit");
             Console.WriteLine();
-            Console.Write("Select an option (1-4): ");
+            Console.Write("Select an option (1-5): ");
         }
 
         public static int GetMenuChoice()
@@ -22,11 +23,11 @@
             while (true)
             {
                 var input = Console.ReadLine();
-                if (int.TryParse(input, out int choice) && choice >= 1 && choice <= 4)
+                if (int.TryParse(input, out int choice) && choice >= 1 && choice <= 5)
                 {
                     return choice;
                 }
-                Console.Write("Invalid choice. Please enter a number between 1 and 4: ");
+                Console.Write("Invalid choice. Please enter a number between 1 and 5: ");
             }
         }
 

@@ -6,10 +6,12 @@ namespace SharePointListsGraphApi.Services
     internal class ListExportService
     {
         private readonly GraphServiceClient _graphClient;
+        private readonly bool _enableDebugLogging;
 
-        public ListExportService(GraphServiceClient graphClient)
+        public ListExportService(GraphServiceClient graphClient, bool enableDebugLogging = false)
         {
             _graphClient = graphClient;
+            _enableDebugLogging = enableDebugLogging;
         }
 
         public async Task<List<Dictionary<string, object>>> DownloadAllListItemsAsync(
@@ -65,6 +67,34 @@ namespace SharePointListsGraphApi.Services
                     }
                 });
 
+            // DEBUG: Log the first request URL (only if debug logging is enabled)
+            if (_enableDebugLogging)
+            {
+                var baseUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/lists/{listId}/items?$expand=fields";
+                if (columns != "*")
+                {
+                    baseUrl += $"&$select={string.Join(",", columns.Split(',').Select(c => c.Trim()))}";
+                }
+                if (fromDate.HasValue || toDate.HasValue)
+                {
+                    var filters = new List<string>();
+                    if (fromDate.HasValue)
+                    {
+                        filters.Add($"fields/Modified ge '{fromDate.Value.ToUniversalTime():yyyy-MM-ddTHH:mm:ssZ}'");
+                    }
+                    if (toDate.HasValue)
+                    {
+                        filters.Add($"fields/Modified le '{toDate.Value.ToUniversalTime():yyyy-MM-ddTHH:mm:ssZ}'");
+                    }
+                    baseUrl += $"&$filter={Uri.EscapeDataString(string.Join(" and ", filters))}";
+                }
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"\n[DEBUG] First Graph API Request URL:");
+                Console.WriteLine($"{baseUrl}");
+                Console.ResetColor();
+                Console.WriteLine();
+            }
+
             while (response != null)
             {
                 pageCount++;
@@ -113,6 +143,14 @@ namespace SharePointListsGraphApi.Services
 
                 if (!string.IsNullOrEmpty(response.OdataNextLink))
                 {
+                    // DEBUG: Log pagination URL (only if debug logging is enabled)
+                    if (_enableDebugLogging)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($"\n[DEBUG] Next page URL: {response.OdataNextLink}");
+                        Console.ResetColor();
+                    }
+                    
                     var nextPageRequest = new Microsoft.Graph.Sites.Item.Lists.Item.Items.ItemsRequestBuilder(
                         response.OdataNextLink, 
                         _graphClient.RequestAdapter);
